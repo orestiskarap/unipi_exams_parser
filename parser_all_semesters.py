@@ -53,18 +53,22 @@ def create_exam_calendar(exam_data):
             f.writelines(c)
         print(f"Calendar file '{file_name}' created successfully!")
 
-def delete_unnecessary_text(text):
-    print("original text: "+text)
-    text=text.strip()
-    if text[:4]=='ΨΣ -':
-        return text[8:].strip()
-    elif " ΠΔΙ -" in text:
-        return text[22:].strip()
-    elif "-1-" in text:
-        return text[18:].strip()
-    elif text[:7]=='Eπιλογή':
-        return text[16:].strip()
-    return text #no need to delete something
+def delete_unnecessary_text(original_text, lesson_code):
+    print("original original_text: "+original_text)
+    clean_lesson_name=original_text.replace("Eπιλογή", "")
+    clean_lesson_name=clean_lesson_name.replace(lesson_code+"-", "")
+    clean_lesson_name = re.sub(r'\s+', ' ', clean_lesson_name).strip() #to remove multiple whitespaces from lesson name
+    
+    # original_text=original_text.strip()
+    # if original_text[:4]=='ΨΣ -':
+        # return original_text[8:].strip()
+    # elif " ΠΔΙ -" in original_text:
+        # return original_text[22:].strip()
+    # elif "-1-" in original_text:
+        # return original_text[18:].strip()
+    # elif original_text[:7]=='Eπιλογή':
+        # return original_text[16:].strip()
+    return clean_lesson_name
 
 def extract_exam_data(pdf_file_path):
     exam_data = []
@@ -86,10 +90,11 @@ def extract_exam_data(pdf_file_path):
         '2. Για  να  γίνουν  δεκτοί  οι  φοιτητές  στις  εξετάσεις  θα  πρέπει  :',
         'α) Να  φέρουν  μαζί τους  την  ακαδημαϊκή  τους  ταυτότητα .',
         'α) Να  φέρουν  μαζί  τους  την  ακαδημαϊκή  τους  ταυτότητα .',
+        'α) Να φέρουν  μαζί τους την ακαδημαϊκή  τους ταυτότητα .',
         'β) Να  προσέλθουν  στη  σειρά  τους  σύμφωνα  με  το  πρόγραμμα  των  εξετάσεων .',
         'Ο ΑΝΤΙΠΡΥΤΑΝΗΣ Ο ΠΡΟΕΔΡΟΣ',
         'ΑΝ . ΚΑΘΗΓΗΤΗΣ  ΣΠΥΡΙΔΩΝ  ΡΟΥΚΑΝΑΣ ΚΑΘΗΓΗΤΗΣ  ΓΕΩΡΓΙΟΣ  ΕΥΘΥΜΟΓΛΟΥ',
-        'ΑΝ. ΚΑΘΗΓΗΤΗΣ ΣΠΥΡΙΔΩΝ ΡΟΥΚΑΝΑΣ ΚΑΘΗΓΗΤΡΙΑ ΜΑΡΙΑ ΒΙΡΒΟΥ'
+        'ΑΝ . ΚΑΘΗΓΗΤΗΣ  ΣΠΥΡΙΔΩΝ  ΡΟΥΚΑΝΑΣ ΚΑΘΗΓΗΤΡΙΑ  ΜΑΡΙΑ  ΒΙΡΒΟΥ'
     ]
 
     with open(pdf_file_path, 'rb') as file:
@@ -162,23 +167,30 @@ def extract_exam_data(pdf_file_path):
                     
                     if lessonFound and not newlineFound:
                         exam_time=line[:14]
-                        rest_of_line =line[14:].strip()
+                        line =line[14:].strip()
                         print("exam time: "+exam_time)
                         # print("rest of line: "+rest_of_line)
                         # print(rest_of_line[-1:])
                         # if(rest_of_line[-1:]==',' or rest_of_line[-1:]=='.'):
-                        rest_of_line=rest_of_line.strip()
+                        line=line.strip()
                         # print("rest_of_line[-2:]: "+rest_of_line[-2:]=='Π')
-                        if(rest_of_line[-1:]==',' or rest_of_line[-2]=='Π'):
-                            classrooms=rest_of_line
+                        # if(line[-1:]==',' or line[-2]=='Π'):
+                        matchManyClassrooms=r"\d,$|Π.$|φ\s,$" #matches "1,EOL" or "Π,EOL" or φ,EOL"
+                        if(re.search(matchManyClassrooms, line[-3:])):
+                            classrooms=line
                             newlineFound=True
                             continue
-                        parts = re.split(r'\s(?=\d)', rest_of_line, maxsplit=1)
-                        classrooms=parts[0]
-                        print("parts:")
-                        print(parts)
-                        rest_of_line=parts[1].strip()
-                        lessonFound=True
+                        print("newlineFound: "+str(newlineFound))
+                        # parts = re.split(r'\s(?=\d)', line, maxsplit=1)
+                        
+                        #case where classrooms are only in one line
+                        # parts = re.split(r'(\s\d\s)', line)
+                        # print("parts:")
+                        # print(parts)
+                        # classrooms=parts[0]
+                        # semester=parts[1].strip()
+                        # line=parts[2].strip()
+                        # lessonFound=True
                         
                     # parts=re.split(r"\d\sΨΣ\s-[0-9]+-(?=\s)",rest_of_line, maxsplit=1)
                     # parts = re.split(r'\b\w+\s-\d+\b', rest_of_line, maxsplit=1)
@@ -194,15 +206,35 @@ def extract_exam_data(pdf_file_path):
                             classrooms=classrooms+' '+ line + ' '
                             continue
                         # parts = re.split(r'\s+(\d+\s+ΨΣ\s+-\d+-\s+.+)$', line)
-                        parts = re.split(r'\s+(?=\d)', line, maxsplit=1)
+                        # parts = re.split(r'\s+(?=\d)', line, maxsplit=1)
+                        # parts = re.split(r'(\s\d\s)', line)
 
-                        print("parts:")
-                        print(parts)
+
+                        # print("parts 1:")
+                        # print(parts)
+                        
                         # classrooms.join(parts[0])
-                        classrooms=classrooms+parts[0]
-                        rest_of_line=parts[1]
+                        
+                        # classrooms=classrooms+parts[0]
+                        # semester=parts[1]
+                        # line=parts[2]
+                        
                         # newlineFound=False
-
+                    
+                    parts = re.split(r'(\s\d\s)', line)
+                    print("parts 2:")
+                    print(parts)
+                    # if not newlineFound:
+                        # classrooms=parts[0]
+                    # semester=parts[1].strip()
+                    # line=parts[2].strip()
+                    
+                    classrooms=classrooms+parts[0]
+                    semester=parts[1]
+                    line=parts[2]
+                    
+                    lessonFound=True
+                    
                     # print(parts)
                     # classrooms=parts
                     # rest_of_line="ΨΣ -"+parts[1]
@@ -210,47 +242,67 @@ def extract_exam_data(pdf_file_path):
                     print("classrooms: " + classrooms)
                     # print("rest of line: "+rest_of_line)
                     
-                    semester=rest_of_line[:1]
-                    rest_of_line=rest_of_line[1:].strip()
+                    # semester=line[:1]
+                    # line=line[1:].strip()
                     print("semester: "+semester)
                     # print("rest_of_line: "+ rest_of_line)
                 
-                print("rest_of_line[:-7:]: "+rest_of_line[-7:])
+                # print("rest_of_line[:-7:]: "+rest_of_line[-7:])
                     
-                extendedDescriptionMatch=re.search(r'ΨΣ\s-\d\d\d',rest_of_line[-7:])
-                if (not extendedDescriptionMatch and not rest_of_line[-3:]=='ΠΔΙ' and not rest_of_line[-1]=='1'):
-                    lesson_name=rest_of_line
-                    extendedDescriptionFound=True
-                    continue
+                #searches for ΨΣ -123 at the end of line
+                # extendedDescriptionMatch=re.search(r'ΨΣ\s-\d\d\d',rest_of_line[-7:])
+                # if (not extendedDescriptionMatch and not rest_of_line[-3:]=='ΠΔΙ' and not rest_of_line[-1]=='1'):
+                #     lesson_name=rest_of_line
+                #     extendedDescriptionFound=True
+                #     continue
+                
+            
+                    
                     
             line=line.strip()
-            if not extendedDescriptionFound:
-                if rest_of_line[-3:]=='ΠΔΙ':
-                    lesson_name= lesson_name +' '+ rest_of_line[:-18]
-                    rest_of_line=rest_of_line[-18:].strip()
-                elif rest_of_line[-2:]=='-1':
-                    lesson_name= lesson_name +' '+ rest_of_line[:-15]
-                    rest_of_line=rest_of_line[-15:].strip()
-                else:
-                    lesson_name= lesson_name +' '+ rest_of_line[:-13]
-                    rest_of_line=rest_of_line[-13:].strip()
-            else:
-                if line[-3:]=='ΠΔΙ':
-                    lesson_name= lesson_name +' '+ line[:-18]
-                    rest_of_line=line[-18:].strip()
-                else:
-                    lesson_name= lesson_name + ' ' +line[:-13]
-                    rest_of_line=line[-13:].strip()
-                    
-            lesson_name=delete_unnecessary_text(lesson_name)
-            # print("cleared text: "+lesson_name)
+            # if not extendedDescriptionFound:
+            #     if rest_of_line[-3:]=='ΠΔΙ':
+            #         lesson_name= lesson_name +' '+ rest_of_line[:-18]
+            #         rest_of_line=rest_of_line[-18:].strip()
+            #     elif rest_of_line[-2:]=='-1':
+            #         lesson_name= lesson_name +' '+ rest_of_line[:-15]
+            #         rest_of_line=rest_of_line[-15:].strip()
+            #     else:
+            #         lesson_name= lesson_name +' '+ rest_of_line[:-13]
+            #         rest_of_line=rest_of_line[-13:].strip()
+            # else:
+                # if line[-3:]=='ΠΔΙ':
+                    # lesson_name= lesson_name +' '+ line[:-18]
+                    # rest_of_line=line[-18:].strip()
+                # else:
+                    # lesson_name= lesson_name + ' ' +line[:-13]
+                    # rest_of_line=line[-13:].strip()
             
+            exam_class_split = r"([Α-Ω]\s-\s[Α-Ω])"  # Matches "Α - Ω" pattern
+                
+            #searches for "Α - Ω" in rest of line
+            if not re.search(exam_class_split, line): #"Α - Ω" not found so whole line is lesson_name
+                lesson_name= lesson_name + ' ' + line #appends to lesson name in case of many iterations
+                extendedDescriptionFound=True
+                continue #read next line, loops until "Α - Ω" pattern is found
+            
+            parts = re.split(exam_class_split, line)
+            lesson_name= (lesson_name + ' ' + parts[0])
+            
+            exam_class=parts[1].strip()
+            lesson_code= parts[2] #removes all whitespace
+
+            
+            
+            lesson_name=delete_unnecessary_text(lesson_name, lesson_code)
             print("lesson name: "+lesson_name)
             # print("rest_of_line: "+rest_of_line)
             
-            exam_class=rest_of_line[:6].strip()
-            lesson_code=rest_of_line[6:].strip()
+            # exam_class=rest_of_line[:6].strip()
+            # lesson_code=rest_of_line[6:].strip()
             print("exam class: "+exam_class)
+            
+            lesson_code= re.sub(r'\s', '', parts[2]) #removes all whitespace from lesson_code
             print("lesson code: "+ lesson_code)
             
             # classrooms, semester, lesson_info = re.split(r'\s', line, maxsplit=3)
