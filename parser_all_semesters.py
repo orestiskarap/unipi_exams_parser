@@ -54,9 +54,10 @@ def create_exam_calendar(exam_data):
         print(f"Calendar file '{file_name}' created successfully!")
 
 def delete_unnecessary_text(original_text, lesson_code):
-    print("original original_text: "+original_text)
+    print("original_text: "+original_text)
     clean_lesson_name=original_text.replace("Eπιλογή", "")
-    clean_lesson_name=clean_lesson_name.replace(lesson_code+"-", "")
+    clean_lesson_name=clean_lesson_name.replace(lesson_code, "").strip()
+    clean_lesson_name=clean_lesson_name[1:]
     clean_lesson_name = re.sub(r'\s+', ' ', clean_lesson_name).strip() #to remove multiple whitespaces from lesson name
     
     # original_text=original_text.strip()
@@ -68,6 +69,8 @@ def delete_unnecessary_text(original_text, lesson_code):
         # return original_text[18:].strip()
     # elif original_text[:7]=='Eπιλογή':
         # return original_text[16:].strip()
+    print("clean_lesson_name: "+clean_lesson_name)
+    
     return clean_lesson_name
 
 def extract_exam_data(pdf_file_path):
