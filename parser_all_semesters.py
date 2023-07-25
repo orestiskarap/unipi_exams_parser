@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from ics import Calendar, Event
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 
 def create_exam_calendar(exam_data):
     for semester in range(1, 9):
